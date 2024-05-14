@@ -4,18 +4,29 @@ from play_menu import PlayMenu
 from main_menu import MainMenu
 import utils
 import socket
+import argparse
 
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(description="Server for Crazy Eights game")
+    parser.add_argument("--hostname", type=str, default='localhost', help="Hostname for the server")
+    parser.add_argument("--port", type=int, default=12345, help="Port number for the server")
+    return parser.parse_args()
+
+
+
+args = parse_arguments()
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 port = 12345
 
 # Bind to the port
-s.bind(('', port))
+s.bind((args.hostname, args.port))
 
 # Put the socket into listening mode
 s.listen(5)
 
-print('Server is listening')
+print('Server is listening on {}:{}'.format(args.hostname, args.port))
 
 while True: 
   c, addr = s.accept()

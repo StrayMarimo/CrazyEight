@@ -4,15 +4,23 @@ from play_menu import PlayMenu
 from main_menu import MainMenu
 import socket
 import utils
-
+import argparse
 # Create a socket object
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(description="Client for Crazy Eights game")
+    parser.add_argument("--hostname", type=str, default='localhost', help="Hostname of the server")
+    parser.add_argument("--port", type=int, default=12345, help="Port number of the server")
+    return parser.parse_args()
+
+args = parse_arguments()
 
 # Define the port on which you want to connect
 port = 12345
 
 # Connect to the server on local computer
-s.connect(('127.0.0.1', port))
+s.connect((args.hostname, args.port))
 
 # Receive ack from the server
 print(s.recv(1024))
