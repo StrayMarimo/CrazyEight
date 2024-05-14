@@ -44,38 +44,10 @@ def load_top_card_from_file(filename):
 def set_initial_game_state():
   game_state = {
     'is_server_turn': True,
-    # 'is_player2_turn': False,
-    # 'did_player_won': False,
-    # 'did_player2_won': False,
-    # 'is_game_running': True,
     'is_player_ready': False,
     'is_player2_ready': False
   }
   write_to_file(game_state, 'game_state.json')
-
-# def is_game_over():
-#   game_state = read_from_file('game_state.json')
-#   return game_state['is_game_over']
-
-# def is_player_turn():
-#   game_state = read_from_file('game_state.json')
-#   return game_state['is_player_turn']
-
-# def is_player2_turn():
-#   game_state = read_from_file('game_state.json')
-#   return game_state['is_player2_turn']
-
-# def did_player_won():
-#   game_state = read_from_file('game_state.json')
-#   return game_state['did_player_won']
-
-# def did_player2_won():
-#   game_state = read_from_file('game_state.json')
-#   return game_state['did_player2_won']
-
-# def is_game_running():
-#   game_state = read_from_file('game_state.json')
-#   return game_state['is_game_running']
 
 def set_server_turn(is_server_turn):
   game_state = read_from_file('game_state.json')
@@ -85,27 +57,6 @@ def set_server_turn(is_server_turn):
 def is_server_turn():
   game_state = read_from_file('game_state.json')
   return game_state['is_server_turn']
-
-# def set_player2_turn():
-#   game_state = read_from_file('game_state.json')
-#   game_state['is_player2_turn'] = True
-#   game_state['is_player_turn'] = False
-#   write_to_file(game_state, 'game_state.json')
-
-# def set_player_won():
-#   game_state = read_from_file('game_state.json')
-#   game_state['did_player_won'] = True
-#   write_to_file(game_state, 'game_state.json')
-
-# def set_player2_won():
-#   game_state = read_from_file('game_state.json')
-#   game_state['did_player2_won'] = True
-#   write_to_file(game_state, 'game_state.json')
-
-# def toggle_game_running(is_game_running):
-#   game_state = read_from_file('game_state.json')
-#   game_state['is_game_running'] = is_game_running
-#   write_to_file(game_state, 'game_state.json')
 
 def set_player_ready():
   game_state = read_from_file('game_state.json')
