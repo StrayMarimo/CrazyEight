@@ -1,0 +1,4 @@
+PyGame
+black
+isort
+pylint
