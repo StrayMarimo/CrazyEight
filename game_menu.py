@@ -35,30 +35,6 @@ class GameMenu:
         self.__icon_x_pos = self.__discard_pile_x + self.__icons.get("clubs").get_width() - 5
         self.__icon_y_pos = self.__discard_pile_y - self.__icons.get("clubs").get_height() - 15
 
-        # self.__sort_button_width = 80
-        # self.__sort_button_height = 30
-        # self.__sort_button_x_pos = (self.__display_dimensions[0] // 2) - (self.__sort_button_width // 2)
-        # self.__sort_button_y_pos = self.__display_dimensions[1] - self.__sort_button_height - 20
-        # self.__sort_button_text = "SORT"
-        # self.__sort_font = pyg.font.Font("COMIC.TTF", 20)
-        # self.__sort_button = Button(self.__display, self.__sort_button_width, self.__sort_button_height, self.__sort_button_x_pos, self.__sort_button_y_pos, self.__sort_button_text, self.__sort_font)
-
-        # self.__new_button_width = 80
-        # self.__new_button_height = 30
-        # self.__new_button_x_pos = 15
-        # self.__new_button_y_pos = 15
-        # self.__new_button_text = "NEW"
-        # self.__new_font = pyg.font.Font("COMIC.TTF", 20)
-        # self.__new_button = Button(self.__display, self.__new_button_width, self.__new_button_height, self.__new_button_x_pos, self.__new_button_y_pos, self.__new_button_text, self.__new_font)
-
-        # self.__exit_button_width = 80
-        # self.__exit_button_height = 30
-        # self.__exit_button_x_pos = 15
-        # self.__exit_button_y_pos = 65
-        # self.__exit_button_text = "EXIT"
-        # self.__exit_font = pyg.font.Font("COMIC.TTF", 20)
-        # self.__exit_button = Button(self.__display, self.__exit_button_width, self.__exit_button_height, self.__exit_button_x_pos, self.__exit_button_y_pos, self.__exit_button_text, self.__exit_font)
-
         self.__change_suit_box_width = (self.__icons.get("clubs").get_width() * 4) + (13 * 2)
         self.__change_suit_box_height = self.__icons.get("clubs").get_height() + 30
         self.__change_suit_box_x_pos = (self.__display_dimensions[0] // 2) - (self.__change_suit_box_width // 2)
@@ -118,10 +94,6 @@ class GameMenu:
 
         self.__display_current_suit_icon()
 
-        # self.__new_button.display_button()
-
-        # self.__exit_button.display_button()
-
         if self.__eight_is_selected:
             self.__display_change_suit_box()
 
@@ -135,7 +107,6 @@ class GameMenu:
         self.__player_win = False
         self.__player2_win = False
         self.__is_receiving = False
-        # self.__player_turn = True
 
         # Creates a deck, discard pile and player hand
         deck = Deck()
@@ -293,21 +264,6 @@ class GameMenu:
                 if event.type == pyg.MOUSEBUTTONDOWN:
                     if event.button == 1:
                         self.__mouse_click = True
-
-            # if self.__new_button.get_button().collidepoint((mouse_pos[0], mouse_pos[1])):
-            #     if self.__mouse_click:
-            #         self.__eight_is_selected = False
-            #         self.__selected_card = None
-            #         self.__running = False
-            #         self.game_menu_loop()
-            # # if self.__sort_button.get_button().collidepoint((mouse_pos[0], mouse_pos[1])):
-            # #     if self.__mouse_click:
-            # #         player_hand.sort_hand(reverse=False)
-            # if self.__exit_button.get_button().collidepoint((mouse_pos[0], mouse_pos[1])):
-            #     if self.__mouse_click:
-            #         self.__eight_is_selected = False
-            #         self.__selected_card = None
-            #         self.__running = False
 
             # Updates the screen on every iteration
             pyg.display.update()
