@@ -1,7 +1,5 @@
 import pygame as pyg
 from button import Button
-import utils
-
 
 class PlayMenu:
 
@@ -66,10 +64,6 @@ class PlayMenu:
 
             if self.__vs_one_button.get_button().collidepoint((mouse_pos[0], mouse_pos[1])):
                 if self.__mouse_click:
-                    if self.__is_server:
-                        utils.set_player_ready()
-                    else:
-                        utils.set_player2_ready()
                     self.__game_menu.game_menu_loop()
             if self.__back_button.get_button().collidepoint((mouse_pos[0], mouse_pos[1])):
                 if self.__mouse_click:

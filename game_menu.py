@@ -1,5 +1,4 @@
-from deck import Card, Deck, Hand, DiscardPile
-from button import Button
+from deck import Deck, Hand, DiscardPile
 import utils
 import pygame as pyg
 
@@ -49,7 +48,14 @@ class GameMenu:
         self.__win_text_y_pos = 0
         self.__win_text_font = pyg.font.Font("COMIC.TTF", 40)
         self.__player_win_text = "YOU WIN!"
-        self.__player2_win_text = "OPPONENT WINS!"
+        self.__opponent_win_text = "OPPONENT WINS!"
+
+        self.__turn_text_x_pos = self.__display_dimensions[0] - 100
+        self.__turn_text_y_pos = self.__display_dimensions[1] - 50
+        self.__turn_text_font = pyg.font.Font("COMIC.TTF", 20)
+        self.__turn_text = ""
+        self.__player_turn_text = "Your turn"
+        self.__opponent_turn_text = "Opponent's turn"
 
         self.__icons_x_pos = {
             "clubs": self.__change_suit_box_x_pos + 5,
@@ -66,9 +72,10 @@ class GameMenu:
         self.__selected_card = None
         self.__game_over = False
         self.__player_win = False
-        self.__player2_win = False
+        self.__opponent_win = False
+        self.__is_reshuffling = False
 
-    def update_screen(self, player_hand, player2_hand, discard_pile):
+    def update_screen(self, player_hand, opponent_hand, discard_pile):
         self.__display.fill((0, 0, 0))
 
         # Scales the background image and places it on the screen
@@ -86,14 +93,14 @@ class GameMenu:
 
         # Automatically moves cards in to the right position along the x-axis based on the width between cards,
         # the gap between cards and the number of cards currently in hand
-        player2_cards_x = (self.__display_dimensions[0] // 2) - ((70 + 5) * len(player2_hand.get_cards_in_hand()) / 2)
-        player2_cards_y = 65
-        player2_hand.show_hand(player2_cards_x, player2_cards_y, is_player=False)
+        opponent_cards_x = (self.__display_dimensions[0] // 2) - ((70 + 5) * len(opponent_hand.get_cards_in_hand()) / 2)
+        opponent_cards_y = 65
+        opponent_hand.show_hand(opponent_cards_x, opponent_cards_y, is_player=False)
 
         discard_pile.show_top_card(self.__discard_pile_x, self.__discard_pile_y)
 
         self.__display_current_suit_icon()
-
+    
         if self.__eight_is_selected:
             self.__display_change_suit_box()
 
@@ -105,81 +112,90 @@ class GameMenu:
         self.__running = True
         self.__game_over = False
         self.__player_win = False
-        self.__player2_win = False
+        self.__opponent_win = False
         self.__is_receiving = False
 
         # Creates a deck, discard pile and player hand
         deck = Deck()
         discard_pile = DiscardPile(self.__display)
         player_hand = Hand(self.__display)
-        player2_hand = Hand(self.__display)
+        opponent_hand = Hand(self.__display)
         top_card = None
+        game_loads = False
 
         if self.__is_server:
 
             # Shuffles the cards
             deck.shuffle_deck()
 
-            # Adds 7 cards to the player hand and player2 hand
+            # Adds 7 cards to the player hand and opponent hand
             for num in range(7):
                 player_hand.add_card(deck.deal())
-                player2_hand.add_card(deck.deal())
+                opponent_hand.add_card(deck.deal())
 
-            # Sorts the player2 hand in descending order of rank so player2 always gets rid of higher rank cards first
-            player2_hand.sort_hand(reverse=True)
+            # Sorts the opponent hand in descending order of rank so opponent always gets rid of higher rank cards first
+            opponent_hand.sort_hand(reverse=True)
 
             discard_pile.add_card(deck.deal())
             top_card = discard_pile.get_top_card()
+            self.__turn_text = self.__player_turn_text
 
-            utils.save_deck_to_file(deck)
-            utils.save_discard_pile_to_file(discard_pile)
-            utils.save_top_card_to_file(top_card)
-
-            utils.save_player_hand_to_file("player1", player_hand)
-            utils.save_player_hand_to_file("player2", player2_hand)
+            utils.send_data(utils.game_data_to_dict(deck, discard_pile, top_card, player_hand, opponent_hand, None), self.__socket)
 
         else:
-            deck.set_deck(utils.load_deck_from_file('deck.json'))
-            discard_pile.set_cards_in_discard_pile(utils.load_discard_pile_from_file('discard_pile.json'), utils.load_top_card_from_file('top_card.json'))
-            player_hand.set_cards_in_hand(utils.load_player_hand_from_file('player2.json'))
-            player2_hand.set_cards_in_hand(utils.load_player_hand_from_file('player1.json'))
+            game_data = utils.receive_data(self.__socket)
+            deck.set_deck(game_data['deck'])
+            discard_pile.set_cards_in_discard_pile(game_data['discard_pile'], game_data['top_card'])
+            opponent_hand.set_cards_in_hand(game_data['player1_hand'])
+            player_hand.set_cards_in_hand(game_data['player2_hand'])
+            self.__turn_text = self.__opponent_turn_text
+            self.__is_receiving = True
 
         self.__current_suit = discard_pile.get_top_card().get_suit()
-
-        game_loads = False
-
+        
         while self.__running:
-            self.update_screen(player_hand, player2_hand, discard_pile)
-            if self.__is_receiving and game_loads:
-                self.update_screen(player_hand, player2_hand, discard_pile)
-                received_data = self.__socket.recv(1024)
-                if received_data:
-                    print("Received data: ", received_data)
-                    deck.set_deck(utils.load_deck_from_file('deck.json'))
-                    discard_pile.set_cards_in_discard_pile(utils.load_discard_pile_from_file('discard_pile.json'), utils.load_top_card_from_file('top_card.json'))
-                    top_card = discard_pile.get_top_card()
-                    if self.__is_server:
-                        player_hand.set_cards_in_hand(utils.load_player_hand_from_file('player1.json'))
-                        player2_hand.set_cards_in_hand(utils.load_player_hand_from_file('player2.json'))
-                    else:
-                        player_hand.set_cards_in_hand(utils.load_player_hand_from_file('player2.json'))
-                        player2_hand.set_cards_in_hand(utils.load_player_hand_from_file('player1.json'))
-                    self.__current_suit = discard_pile.get_top_card().get_suit()
-                    self.__is_receiving = False
-
-            self.update_screen(player_hand, player2_hand, discard_pile)
-
-            # If the game is over displays a win or lose message depending on whether the player or player2 won
+            self.update_screen(player_hand, opponent_hand, discard_pile)
+            self.__check_for_win(player_hand, opponent_hand)
+            
+            # If the game is over displays a win or lose message depending on whether the player or opponent won
             if self.__game_over:
                 if self.__player_win:
                     self.__display_win_text(self.__player_win_text)
-                if self.__player2_win:
-                    self.__display_win_text(self.__player2_win_text)
-                self.__socket.send(b'game over')
+                if self.__opponent_win:
+                    self.__display_win_text(self.__opponent_win_text)
+                pyg.display.update()
+                # Sets the FPS
+                self.__main_clock.tick(60)
+                continue
+            self.__display_turn_text(self.__turn_text)
+            if self.__is_receiving and game_loads:
+                self.__display_turn_text(self.__turn_text)
+                self.update_screen(player_hand, opponent_hand, discard_pile)
+                received_data = utils.receive_data(self.__socket)
+                if received_data:
+                    if received_data['deck'] is not None:
+                        deck.set_deck(received_data['deck'])
+                    if received_data['discard_pile'] is not None:
+                        discard_pile.set_cards_in_discard_pile(received_data['discard_pile'], received_data['top_card'])
+                    if self.__is_server:
+                        if received_data['player1_hand'] is not None:
+                            player_hand.set_cards_in_hand(received_data['player1_hand'])
+                        if received_data['player2_hand'] is not None:
+                            opponent_hand.set_cards_in_hand(received_data['player2_hand'])
+                    else:
+                        if received_data['player2_hand'] is not None:
+                            player_hand.set_cards_in_hand(received_data['player2_hand'])
+                        if received_data['player1_hand'] is not None:
+                            opponent_hand.set_cards_in_hand(received_data['player1_hand'])
+                    if received_data['new_suit'] is not None:
+                        self.__current_suit = received_data['new_suit']
+                    else:
+                        self.__current_suit = discard_pile.get_top_card().get_suit()
+                    self.__is_receiving = False
+                    self.__turn_text = self.__player_turn_text
 
             # Stores the position of the mouse
             mouse_pos = pyg.mouse.get_pos()
-
             if not self.__game_over:
                 # Loops through the cards in the players hand
                 for card in player_hand.get_cards_in_hand():
@@ -190,18 +206,21 @@ class GameMenu:
                         card_rect_y = card.get_y() + (card_img.get_height() / 2)
                         if card_img.get_rect(center=(card_rect_x, card_rect_y)).collidepoint((mouse_pos[0], mouse_pos[1])) and not self.__eight_is_selected:
                             if self.__mouse_click:
-                                self.__player_card_play(discard_pile, card, player_hand, player2_hand)
+                                self.__player_card_play(discard_pile, card, player_hand, opponent_hand)
                                 self.__mouse_click = False
+                                self.__display_turn_text(self.__turn_text)
 
                         if self.__eight_is_selected:
-                            self.__player_eight_play(mouse_pos, player_hand, player2_hand, discard_pile)
+                            self.__player_eight_play(mouse_pos, player_hand, opponent_hand, discard_pile)
         
                         # if self.__is_server and game_start:
                         #     game_start = False
-                self.__check_for_win(player_hand, player2_hand)
+                self.__check_for_win(player_hand, opponent_hand)
 
                 self.__reshuffle_deck(deck, discard_pile)
-                deck.set_deck(utils.load_deck_from_file('deck.json'))
+                if self.__is_reshuffling:
+                    deck.set_deck(game_data['deck'])
+                    self.__is_reshuffling = False
                 
                 # Loops through the cards in the players hand and checks if a playable card is present. If not,
                 # allows the player to draw a single card
@@ -223,32 +242,28 @@ class GameMenu:
                 deck_rect_y = self.__deck_y_pos + (self.__deck_img.get_height() / 2)
                 if self.__deck_img.get_rect(center=(deck_rect_x, deck_rect_y)).collidepoint((mouse_pos[0], mouse_pos[1])):
                     if self.__mouse_click:
-                        self.__card_draw(deck, player_hand, discard_pile)
+                        new_hand, new_deck = self.__card_draw(deck, player_hand, opponent_hand, discard_pile)
                         
                         self.__draw_card = False
                         if not self.__eight_is_selected:
-                            if self.__is_server:
-                                player_hand.set_cards_in_hand(utils.load_player_hand_from_file('player1.json'))
-                                utils.set_server_turn(False)
-                            else:
-                                player_hand.set_cards_in_hand(utils.load_player_hand_from_file('player2.json'))
-                                utils.set_server_turn(True)
-                            deck.set_deck(utils.load_deck_from_file('deck.json'))
+                            player_hand.set_cards_in_hand(new_hand)
+                            deck.set_deck(new_deck)
+                            self.update_screen(player_hand, opponent_hand, discard_pile)
                             self.__is_receiving = True
-                            self.update_screen(player_hand, player2_hand, discard_pile)
-                            self.__socket.send(b'opponent drew a card')
+                            self.__turn_text = self.__opponent_turn_text
+                        else:
+                            self.__mouse_click = False
+                            self.__player_eight_play(mouse_pos, player_hand, opponent_hand, discard_pile)
+                        self.__display_turn_text(self.__turn_text)
 
-            # Allows player2 to play a turn and sets player turn to true to allow player to play a card or draw a card
+            # Allows opponent to play a turn and sets player turn to true to allow player to play a card or draw a card
             # if the game is not over
             if not self.__game_over and self.__is_receiving:
                 self.__reshuffle_deck(deck, discard_pile)
-                deck.set_deck(utils.load_deck_from_file('deck.json'))
-                self.__check_for_win(player_hand, player2_hand)
-                if self.__is_server:
-                    utils.set_server_turn(True)
-                else:
-                    utils.set_server_turn(False)
-
+                if self.__is_reshuffling:
+                    deck.set_deck(game_data['deck'])
+                    self.__is_reshuffling = False 
+                self.__check_for_win(player_hand, opponent_hand)
             # Resets the mouse click
             self.__mouse_click = False
 
@@ -271,17 +286,14 @@ class GameMenu:
             self.__main_clock.tick(60)
 
             if not game_loads and self.__is_server:
-                self.__socket.send(b'game start')
                 data = self.__socket.recv(1024)
                 if data:
                     game_loads = True
             if not game_loads and not self.__is_server:
-                data = self.__socket.recv(1024)
-                if data: 
-                    game_loads = True
-                    self.__is_receiving = True
-                    self.__socket.send(b' game start')
-
+                game_loads = True
+                self.__socket.send(b'game start')
+            self.__display_turn_text(self.__turn_text)
+    
     def __player_card_play(self, discard_pile, card, hand, opponent_hand):
         """
         Allows for the play of a playable card
@@ -290,7 +302,7 @@ class GameMenu:
         top_card = discard_pile.get_top_card()
         top_card_rank = top_card.get_rank()
 
-        # Stores the current suit and rank of the card in player2 hand
+        # Stores the current suit and rank of the card in opponent hand
         card_suit = card.get_suit()
         card_rank = card.get_rank()
 
@@ -304,7 +316,7 @@ class GameMenu:
                 self.__add_card_to_discard_pile(hand, card, discard_pile)
                 self.update_screen(hand, opponent_hand, discard_pile)
                 self.__is_receiving = True
-                self.__socket.send(b'opponent played a card')
+                self.__turn_text = self.__opponent_turn_text
 
 
     def __player_eight_play(self, mouse_pos, hand, opponent_hand, discard_pile):
@@ -326,32 +338,23 @@ class GameMenu:
                     self.__eight_is_selected = False
 
                     top_card = discard_pile.get_top_card()
-                    top_card.set_suit(icon)
-                    utils.save_top_card_to_file(top_card)
-                    # print(top_card)
 
                     if self.__is_server:
-                        utils.save_player_hand_to_file("player1", hand)
-
+                        utils.send_data(utils.game_data_to_dict(None, discard_pile, top_card, hand, None, icon), self.__socket)
                     else:
-                        utils.save_player_hand_to_file("player2", hand)
-                    utils.save_discard_pile_to_file(discard_pile)
-
-
+                        utils.send_data(utils.game_data_to_dict(None, discard_pile, top_card, None, hand, icon), self.__socket)
                     self.update_screen(hand, opponent_hand, discard_pile) 
                     self.__is_receiving = True
-                    self.__socket.send(b'opponent played an 8')
+                    self.__turn_text = self.__opponent_turn_text
 
-    def __card_draw(self, deck, hand, discard_pile):
+
+    def __card_draw(self, deck, hand, opponent_hand, discard_pile):
         """
         Draws a card into the hand. If the card is playable, plays it automatically
         """
 
-        print("drawing a card")
         card = deck.deal()
         hand.add_card(card)
-
-        utils.save_deck_to_file(deck)
 
         top_card = discard_pile.get_top_card()
         top_card_rank = top_card.get_rank()
@@ -364,18 +367,15 @@ class GameMenu:
                 card = hand.remove_card(card)
                 discard_pile.set_top_card(card)
                 discard_pile.add_card(card)
-
                 top_card = discard_pile.get_top_card()
-                utils.save_top_card_to_file(top_card)
-
-        if self.__is_server:
-            utils.save_player_hand_to_file("player1", hand)
-
-        else:
-            utils.save_player_hand_to_file("player2", hand)
-        utils.save_discard_pile_to_file(discard_pile)
-            
-        self.__current_suit = discard_pile.get_top_card().get_suit()
+        
+            if self.__is_server:
+                utils.send_data(utils.game_data_to_dict(deck, discard_pile, top_card, hand, None, None), self.__socket)
+            else:
+                utils.send_data(utils.game_data_to_dict(deck, discard_pile, top_card, None, hand, None), self.__socket)
+                
+            self.__current_suit = discard_pile.get_top_card().get_suit()
+        return [card.to_dict() for card in hand.get_cards_in_hand()], [card.to_dict() for card in deck.get_deck()] 
 
     def __add_card_to_discard_pile(self, hand, card, discard_pile):
         """
@@ -386,20 +386,17 @@ class GameMenu:
         discard_pile.add_card(card_to_remove)
 
         top_card = discard_pile.get_top_card()
-        utils.save_top_card_to_file(top_card)
 
         if self.__is_server:
-            utils.save_player_hand_to_file("player1", hand)
-
+            utils.send_data(utils.game_data_to_dict(None, discard_pile, top_card, hand, None, None), self.__socket)
         else:
-            utils.save_player_hand_to_file("player2", hand)
-        utils.save_discard_pile_to_file(discard_pile)
+            utils.send_data(utils.game_data_to_dict(None, discard_pile, top_card, None, hand, None), self.__socket)
             
         self.__current_suit = discard_pile.get_top_card().get_suit()
 
-    def __check_for_win(self, player_hand, player2_hand):
+    def __check_for_win(self, player_hand, opponent_hand):
         """
-        Checks if player or player2 discarded all their cards. If so, ends the game
+        Checks if player or opponent discarded all their cards. If so, ends the game
         """
 
         if len(player_hand.get_cards_in_hand()) == 0:
@@ -407,13 +404,13 @@ class GameMenu:
             self.__game_over = True
             self.__player_win = True
 
-        if len(player2_hand.get_cards_in_hand()) == 0:
+        if len(opponent_hand.get_cards_in_hand()) == 0:
             self.__draw_card = False
             self.__game_over = True
-            self.__player2_win = True
+            self.__opponent_win = True
 
-    @staticmethod
-    def __reshuffle_deck(deck, discard_pile):
+    # @staticmethod
+    def __reshuffle_deck(self, deck, discard_pile):
         """
         When there is no more cards in the deck, moves all the cards aside from the last played card from the
         discard pile back into the deck and shuffles the deck
@@ -423,7 +420,8 @@ class GameMenu:
             cards = discard_pile.get_cards_in_discard_pile()[:-1]
             deck.reset_deck(cards)
             deck.shuffle_deck()
-            utils.save_deck_to_file(deck)
+            utils.send_data(utils.game_data_to_dict(deck, None, None, None, None, None), self.__socket)
+            self.__is_reshuffling = True
 
     def __display_current_suit_icon(self):
         """
@@ -449,7 +447,14 @@ class GameMenu:
         """
         Displays who won the game
         """
-
         text = self.__win_text_font.render(win_text, True, self.__white)
         self.__win_text_x_pos = (self.__display_dimensions[0] // 2) - (text.get_width() // 2)
         self.__display.blit(text, (self.__win_text_x_pos, self.__win_text_y_pos))
+
+    def __display_turn_text(self, turn_text):
+        """
+        Displays whose turn is it
+        """
+        text = self.__turn_text_font.render(turn_text, True, self.__white)
+        self.__turn_text_x_pos = (self.__display_dimensions[0] // 2) - (text.get_width() // 2)
+        self.__display.blit(text, (self.__turn_text_x_pos, self.__turn_text_y_pos))

@@ -1,77 +1,46 @@
-import json
-from deck import Card, Deck
+import pickle
 
-def write_to_file(data, filename):
-  with open('database/' + filename, 'w') as f:
-    json.dump(data, f)
+def send_data(data, socket):
+    pickled_data = pickle.dumps(data)
 
-def read_from_file(filename):
-  with open ('database/' + filename, 'r') as f:
-    return json.load(f)
+    socket.send(pickled_data + b'END_OF_PICKLE')
 
-def save_deck_to_file(deck):
+def receive_data(socket):
+    data = b''
+    while True:
+        part = socket.recv(1024)
+        data += part
+        if b'END_OF_PICKLE' in part:
+            break
+    data = data[:-len(b'END_OF_PICKLE')]  # remove the delimiter from the end of the data
+    if data:
+        data = pickle.loads(data)
+    else:
+        data = None
+    return data
+  
+def game_data_to_dict(deck=None, discard_pile=None, top_card=None, player1_hand=None, player2_hand=None, new_suit=None):
+    return {
+        'deck': [card.to_dict() for card in deck.get_deck()] if deck else None,
+        'discard_pile': [card.to_dict() for card in discard_pile.get_cards_in_discard_pile()] if discard_pile else None,
+        'top_card': top_card.to_dict() if top_card else None,
+        'player1_hand': [card.to_dict() for card in player1_hand.get_cards_in_hand()] if player1_hand else None,
+        'player2_hand': [card.to_dict() for card in player2_hand.get_cards_in_hand()] if player2_hand else None,
+        'new_suit': new_suit
+    }
+
+def save_deck_to_file(deck, socket):
   deck_data = [card.to_dict() for card in deck.get_deck()]
-  write_to_file(deck_data, 'deck.json')
+  send_data(deck_data, socket)
 
-def save_discard_pile_to_file(discard_pile):
+def save_discard_pile_to_file(discard_pile, socket):
   discard_pile_data = [card.to_dict() for card in discard_pile.get_cards_in_discard_pile()]
-  write_to_file(discard_pile_data, 'discard_pile.json')
+  send_data(discard_pile_data, socket)
 
-def save_player_hand_to_file(player, hand):
+def save_player_hand_to_file(hand, socket):
   player_hand_data = [card.to_dict() for card in hand.get_cards_in_hand()]
-  write_to_file(player_hand_data, player + '.json')
+  send_data(player_hand_data, socket)
 
-def save_top_card_to_file(top_card):
+def save_top_card_to_file(top_card, socket):
   top_card_data = top_card.to_dict()
-  write_to_file(top_card_data, 'top_card.json')
-
-def load_deck_from_file(filename):
-  deck_data = read_from_file(filename)
-  return deck_data
-
-def load_discard_pile_from_file(filename):
-  discard_pile_data = read_from_file(filename)
-  return discard_pile_data
-
-def load_player_hand_from_file(filename):
-  player_hand_data = read_from_file(filename)
-  return player_hand_data
-
-def load_top_card_from_file(filename):
-  top_card_data = read_from_file(filename)
-  return top_card_data
-
-def set_initial_game_state():
-  game_state = {
-    'is_server_turn': True,
-    'is_player_ready': False,
-    'is_player2_ready': False
-  }
-  write_to_file(game_state, 'game_state.json')
-
-def set_server_turn(is_server_turn):
-  game_state = read_from_file('game_state.json')
-  game_state['is_server_turn'] = is_server_turn
-  write_to_file(game_state, 'game_state.json')
-
-def is_server_turn():
-  game_state = read_from_file('game_state.json')
-  return game_state['is_server_turn']
-
-def set_player_ready():
-  game_state = read_from_file('game_state.json')
-  game_state['is_player_ready'] = True
-  write_to_file(game_state, 'game_state.json')
-
-def set_player2_ready():
-  game_state = read_from_file('game_state.json')
-  game_state['is_player2_ready'] = True
-  write_to_file(game_state, 'game_state.json')
-
-def is_player_ready():
-  game_state = read_from_file('game_state.json')
-  return game_state['is_player_ready']
-
-def is_player2_ready():
-  game_state = read_from_file('game_state.json')
-  return game_state['is_player2_ready']
+  send_data(top_card_data, socket)

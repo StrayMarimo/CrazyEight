@@ -16,16 +16,13 @@ def parse_arguments():
 
 args = parse_arguments()
 
-# Define the port on which you want to connect
-port = 12345
-
 # Connect to the server on local computer
 s.connect((args.hostname, args.port))
 
 # Receive ack from the server
 print(s.recv(1024))
 
-utils.set_initial_game_state()
+# utils.set_initial_game_state()
 
 # Use the received data to create the necessary objects
 display_set_up = DisplaySetUp("Crazy Eights -- Client")
