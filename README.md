@@ -14,3 +14,12 @@ The first player to discard all their cards is the winner!
 
 This is implemented with sockets
 
+## Installation
+```pip install -r requirements.txt```
+
+## Usage
+Run the server:
+```python Server.py --hostname <hostname> --port <port> ```
+
+Run the client
+```python Client.py --hostname <hostname> --port <port> ```

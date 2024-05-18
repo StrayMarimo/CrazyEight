@@ -1,4 +1,1 @@
 PyGame
-black
-isort
-pylint
